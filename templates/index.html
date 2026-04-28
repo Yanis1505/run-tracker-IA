@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Run Tracker — Yanis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #161b22;
+    --border: #21262d;
+    --accent: #f97316;
+    --accent2: #fb923c;
+    --green: #3fb950;
+    --blue: #58a6ff;
+    --text: #e6edf3;
+    --muted: #7d8590;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .header-badge {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .hero { margin-bottom: 40px; }
+
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--muted); font-size: 15px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  @media(max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--accent); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+
+  .stat-value span { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .stat-sub.good { color: var(--green); }
+
+  .prediction-card {
+    background: linear-gradient(135deg, #1a0a00 0%, #0d1117 60%);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .prediction-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .prediction-label {
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .prediction-title { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .prediction-desc { font-size: 13px; color: var(--muted); max-width: 400px; }
+
+  .time {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -2px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    line-height: 1;
+  }
+
+  .time-label { font-size: 12px; color: var(--muted); text-align: center; margin-top: 4px; }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  @media(max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .chart-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 32px;
+  }
+
+  .form-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .form-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    align-items: end;
+  }
+
+  @media(max-width: 768px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .form-group input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus { border-color: var(--accent); }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    width: 100%;
+  }
+
+  .btn:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-header h3 { font-size: 14px; font-weight: 600; }
+
+  .count-badge {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'DM Mono', monospace;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  td {
+    padding: 14px 24px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .pace-good { color: var(--green); }
+  .pace-ok { color: var(--blue); }
+  .pace-slow { color: var(--muted); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--green);
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏃</div>
+    Run Tracker
+  </div>
+  <div class="header-badge">Yanis Abassi</div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Ta progression,<br><span>analysée par l'IA</span></h1>
+    <p>Ajoute tes courses, suis ta progression, prédit ton semi-marathon.</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total courses</div>
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-sub" id="stat-total-sub">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Distance totale</div>
+      <div class="stat-value" id="stat-distance">—<span>km</span></div>
+      <div class="stat-sub" id="stat-distance-sub">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Allure moyenne</div>
+      <div class="stat-value" id="stat-pace">—<span>min/km</span></div>
+      <div class="stat-sub" id="stat-pace-sub">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Meilleure allure</div>
+      <div class="stat-value" id="stat-best">—<span>min/km</span></div>
+      <div class="stat-sub" id="stat-best-sub">—</div>
+    </div>
+  </div>
+
+  <div class="prediction-card">
+    <div>
+      <div class="prediction-label">🤖 Prédiction IA</div>
+      <div class="prediction-title">Semi-marathon (21.1 km)</div>
+      <div class="prediction-desc" id="pred-desc">Chargement...</div>
+    </div>
+    <div>
+      <div class="time" id="pred-time">--:--</div>
+      <div class="time-label">hh:mm:ss estimé</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Progression de l'allure</div>
+      <div class="chart-subtitle">min/km au fil du temps — plus bas = plus rapide</div>
+      <canvas id="chartPace" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Répartition des distances</div>
+      <div class="chart-subtitle">Catégories de tes courses</div>
+      <canvas id="chartDist" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-title">➕ Ajouter une course</div>
+    <div class="form-subtitle">La prédiction se met à jour automatiquement après chaque ajout.</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="input-date">
+      </div>
+      <div class="form-group">
+        <label>Distance (km)</label>
+        <input type="number" id="input-dist" placeholder="10.5" step="0.1" min="0.5">
+      </div>
+      <div class="form-group">
+        <label>Durée (minutes)</label>
+        <input type="number" id="input-time" placeholder="52" step="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Ajouter</label>
+        <button class="btn" onclick="addRun()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <h3>Historique des courses</h3>
+      <span class="count-badge" id="count-badge">0 courses</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Distance</th>
+          <th>Durée</th>
+          <th>Allure</th>
+          <th>Perf.</th>
+        </tr>
+      </thead>
+      <tbody id="runs-table">
+        <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px">Chargement...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<div class="toast" id="toast">✓ Course ajoutée !</div>
+
+<script>
+let runs = [];
+let chartPace = null;
+let chartDist = null;
+
+// ---- UTILITAIRES ----
+function pace(distance, duration) {
+  return duration / distance;
+}
+
+function formatPace(p) {
+  const min = Math.floor(p);
+  const sec = Math.round((p - min) * 60);
+  return `${min}'${sec.toString().padStart(2,'0')}"`;
+}
+
+function formatTime(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = Math.floor(minutes % 60);
+  const s = Math.round((minutes - Math.floor(minutes)) * 60);
+  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+// ---- MODELE IA : REGRESSION LINEAIRE ----
+function linearRegression(x, y) {
+  const n = x.length;
+  const sumX = x.reduce((a,b) => a+b, 0);
+  const sumY = y.reduce((a,b) => a+b, 0);
+  const sumXY = x.reduce((s,xi,i) => s + xi*y[i], 0);
+  const sumX2 = x.reduce((s,xi) => s + xi*xi, 0);
+  const slope = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
+  const intercept = (sumY - slope*sumX) / n;
+  return { slope, intercept };
+}
+
+function predictSemi(runs) {
+  if (runs.length < 3) return null;
+  const sorted = [...runs].sort((a,b) => new Date(a.date) - new Date(b.date));
+  const x = sorted.map((_, i) => i);
+  const y = sorted.map(r => pace(r.distance, r.duration));
+  const { slope, intercept } = linearRegression(x, y);
+  const predictedPace = intercept + slope * sorted.length;
+  const clamped = Math.max(4.5, Math.min(8.0, predictedPace));
+  return clamped * 21.1;
+}
+
+// ---- RENDU ----
+function render() {
+  const sorted = [...runs].sort((a,b) => new Date(a.date) - new Date(b.date));
+  const paces = sorted.map(r => pace(r.distance, r.duration));
+  const totalDist = runs.reduce((s,r) => s + r.distance, 0);
+  const avgPace = runs.length ? paces.reduce((a,b)=>a+b,0)/paces.length : 0;
+  const bestPace = runs.length ? Math.min(...paces) : 0;
+
+  // Stats
+  document.getElementById('stat-total').textContent = runs.length;
+  document.getElementById('stat-total-sub').textContent = runs.length > 0 ? `Depuis ${sorted[0]?.date.slice(0,4)}` : '—';
+  document.getElementById('stat-distance').innerHTML = `${totalDist.toFixed(1)}<span>km</span>`;
+  document.getElementById('stat-distance-sub').textContent = `Moy. ${(totalDist/Math.max(runs.length,1)).toFixed(1)} km/course`;
+  document.getElementById('stat-pace').innerHTML = `${formatPace(avgPace)}<span>moy.</span>`;
+  document.getElementById('stat-best').innerHTML = `${formatPace(bestPace)}<span>best</span>`;
+
+  // Prédiction
+  const semi = predictSemi(runs);
+  if (semi) {
+    document.getElementById('pred-time').textContent = formatTime(semi);
+    const trend = paces[paces.length-1] < paces[0];
+    document.getElementById('pred-desc').textContent = `Basé sur ta tendance sur ${runs.length} courses. ${trend ? 'Progression détectée 📈' : 'Continue l\'entraînement 💪'}`;
+  } else {
+    document.getElementById('pred-time').textContent = '--:--';
+    document.getElementById('pred-desc').textContent = `Ajoute au moins 3 courses pour activer la prédiction (${runs.length}/3).`;
+  }
+
+  // Graphique allure
+  const labels = sorted.map(r => r.date.slice(0,7));
+  const paceData = paces.map(p => parseFloat(p.toFixed(2)));
+
+  if (chartPace) chartPace.destroy();
+  chartPace = new Chart(document.getElementById('chartPace'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: paceData,
+        borderColor: '#f97316',
+        backgroundColor: 'rgba(249,115,22,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#f97316',
+        pointRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          reverse: true,
+          ticks: { color: '#7d8590', callback: v => `${Math.floor(v)}'${Math.round((v%1)*60).toString().padStart(2,'0')}"` },
+          grid: { color: '#21262d' }
+        },
+        x: { ticks: { color: '#7d8590', maxRotation: 45 }, grid: { color: '#21262d' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // Graphique répartition
+  const cats = { 'Courte (<8km)': 0, 'Moyenne (8-15km)': 0, 'Longue (>15km)': 0 };
+  runs.forEach(r => {
+    if (r.distance < 8) cats['Courte (<8km)']++;
+    else if (r.distance <= 15) cats['Moyenne (8-15km)']++;
+    else cats['Longue (>15km)']++;
+  });
+
+  if (chartDist) chartDist.destroy();
+  chartDist = new Chart(document.getElementById('chartDist'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(cats),
+      datasets: [{
+        data: Object.values(cats),
+        backgroundColor: ['#f97316', '#58a6ff', '#3fb950'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#7d8590', padding: 16, font: { size: 12 } } }
+      }
+    }
+  });
+
+  // Tableau
+  const tbody = document.getElementById('runs-table');
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px">Aucune course</td></tr>';
+  } else {
+    tbody.innerHTML = [...sorted].reverse().map(r => {
+      const p = pace(r.distance, r.duration);
+      const cls = p < 5.5 ? 'pace-good' : p < 7 ? 'pace-ok' : 'pace-slow';
+      const perf = p < 5.5 ? '🔥 Rapide' : p < 7 ? '👍 Bien' : '🚶 Lent';
+      return `<tr>
+        <td>${r.date}</td>
+        <td>${r.distance.toFixed(1)} km</td>
+        <td>${r.duration} min</td>
+        <td class="${cls}">${formatPace(p)}/km</td>
+        <td>${perf}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('count-badge').textContent = `${runs.length} course${runs.length > 1 ? 's' : ''}`;
+}
+
+// ---- CHARGER LES COURSES DEPUIS FLASK ----
+async function loadRuns() {
+  const response = await fetch('/api/courses');
+  runs = await response.json();
+  render();
+}
+
+// ---- AJOUTER UNE COURSE ----
+async function addRun() {
+  const date = document.getElementById('input-date').value;
+  const dist = parseFloat(document.getElementById('input-dist').value);
+  const time = parseFloat(document.getElementById('input-time').value);
+
+  if (!date || !dist || !time || dist <= 0 || time <= 0) {
+    alert('Remplis tous les champs !');
+    return;
+  }
+
+  await fetch('/api/courses', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, distance: dist, duration: time })
+  });
+
+  document.getElementById('input-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('input-dist').value = '';
+  document.getElementById('input-time').value = '';
+
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+
+  await loadRuns();
+}
+
+// Date par défaut
+document.getElementById('input-date').value = new Date().toISOString().slice(0,10);
+
+// Chargement initial
+loadRuns();
+</script>
+</body>
+</html>
